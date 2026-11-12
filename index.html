@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CDI · Retorno real líquido</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#173a35;background:#f3f6f3;font-size:16px}*{box-sizing:border-box}body{margin:0}main{max-width:1150px;margin:auto;padding:40px 24px}header{margin-bottom:30px}h1{font-size:clamp(28px,4vw,42px);letter-spacing:-1.3px;margin:8px 0}h2{font-size:23px;margin:0 0 18px}p{line-height:1.6}small,.note{color:#526b66;font-size:13px;line-height:1.6}.eyebrow{text-transform:uppercase;letter-spacing:2px;font-size:12px}section{background:white;border:1px solid #dbe5de;border-radius:18px;padding:26px;margin-bottom:22px}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px;margin-bottom:20px}label{display:block;font-size:13px;font-weight:600}input{width:100%;margin-top:8px;padding:12px;border:1px solid #b5cac2;border-radius:8px;font:inherit;color:inherit;background:#fbfdfb}input:focus{outline:2px solid #218263;outline-offset:2px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap;font-variant-numeric:tabular-nums}th,td{text-align:right;padding:15px 13px;border-bottom:1px solid #e6ece8}th{font-size:12px;background:#edf4ef}th:first-child,td:first-child{text-align:left}td:last-child{font-weight:650}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.card{border:1px solid #dce8e0;background:#f5f9f5;padding:18px;border-radius:12px}.card span{display:block;font-size:13px}.card strong{display:block;font-size:24px;margin-top:8px;font-variant-numeric:tabular-nums}.card.primary{background:#174d40;color:white}.negative{color:#a13029}.error{color:#a13029;font-weight:600}details{margin-top:20px}summary{cursor:pointer}code{font-size:13px;white-space:normal}a{color:#176952}button{font:inherit;color:#174d40;border:1px solid #b5cac2;border-radius:8px;background:white;padding:9px 14px;cursor:pointer}footer{font-size:12px;color:#526b66} @media(max-width:600px){main{padding:24px 12px}section{padding:18px}th,td{padding:12px 10px}}
+</style>
+<main>
+<header><div class="eyebrow">Laboratório de renda fixa · funciona offline</div><h1>Quanto rende acima da inflação?</h1><p>Compare percentuais do CDI e calcule seu resgate após impostos.</p></header>
+<section>
+<h2>Tabela de rentabilidade real líquida</h2>
+<div class="fields">
+<label>CDI constante (% ao ano)<input id="cdi" type="number" min="0" max="1000" step=".01" value="15"></label>
+<label>Inflação constante (% ao ano)<input id="inflation" type="number" min="-99" max="1000" step=".01" value="4"></label>
+</div>
+<p class="note">Todas as células mostram taxas reais líquidas <b>anualizadas</b>. Os prazos são dias corridos. Para esta comparação, dias úteis = dias corridos × 252/365.</p>
+<p id="tableError" class="error" role="alert"></p>
+<div class="scroll"><table><thead><tr><th>Remuneração</th><th>180 dias<br>IR 22,5%</th><th>360 dias<br>IR 20%</th><th>720 dias<br>IR 17,5%</th><th>721 dias<br>IR 15%</th></tr></thead><tbody id="rows"></tbody></table></div>
+</section>
+<section>
+<h2>Calcule com seus valores</h2>
+<p class="note">CDI e inflação são os informados acima. Aqui você informa os dois prazos separadamente, sem estimar dias úteis. O resultado é exato dentro do modelo de taxas constantes, antes de diferenças de arredondamento da instituição.</p>
+<div class="fields">
+<label>Capital aplicado (R$)<input id="capital" type="number" min=".01" max="1000000000000" step=".01" value="10000"></label>
+<label>Percentual do CDI (%)<input id="percentage" type="number" min="0" max="1000" step=".01" value="120"></label>
+<label>Prazo financeiro (dias úteis)<input id="business" type="number" min="0" max="25200" step="1" value="498"></label>
+<label>Prazo fiscal (dias corridos)<input id="calendar" type="number" min="1" max="36500" step="1" value="721"></label>
+<label>Custos totais na saída (R$)<input id="costs" type="number" min="0" max="1000000000000" step=".01" value="0"></label>
+</div>
+<p id="exactError" class="error" role="alert"></p>
+<div id="results" aria-live="polite"></div>
+<details><summary>Como o cálculo funciona</summary>
+<p>O percentual contratado multiplica a taxa diária equivalente do CDI. Os fatores diários são compostos pelo número de dias úteis informado.</p>
+<p><code>Taxa diária CDI = (1 + CDI anual)^(1/252) − 1<br>Valor bruto = capital × (1 + percentual CDI × taxa diária CDI)^dias úteis<br>IOF = ganho positivo × alíquota IOF<br>IR = (ganho positivo − IOF) × alíquota IR<br>Valor líquido = valor bruto − IOF − IR − custos<br>Inflação acumulada = (1 + inflação anual)^(dias corridos/365) − 1<br>Retorno real líquido = (valor líquido/capital)/(1 + inflação acumulada) − 1<br>Retorno real líquido anualizado = (1 + retorno real líquido)^(365/dias corridos) − 1</code></p>
+<p class="note">Taxas nas fórmulas em decimal. Resgate integral, sem aportes ou pagamentos intermediários. Custos são descontados separadamente na saída. O IOF regressivo é aplicado antes de 30 dias e o IR é calculado depois do IOF. Para apurar uma operação histórica com CDI variável, é preciso usar a série diária efetiva. A liquidez e a disponibilidade do resgate dependem do contrato.</p>
+</details>
+</section>
+<button id="reset">Restaurar exemplo</button>
+<footer><p>IR de renda fixa e IOF regressivo considerados. Os campos não consultam taxas de mercado.<br>Referências · <a href="https://normas.receita.fazenda.gov.br/sijut2consulta/link.action?idAto=67494" target="_blank" rel="noopener">Receita Federal, IN 1.585, art. 46</a> · <a href="https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/decreto/d6306.htm" target="_blank" rel="noopener">Decreto 6.306, tabela do IOF</a></p></footer>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const percent=new Intl.NumberFormat('pt-BR',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2});
+const money=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const iofRates=[0,96,93,90,86,83,80,76,73,70,66,63,60,56,53,50,46,43,40,36,33,30,26,23,20,16,13,10,6,3];
+function irRate(days){return days<=180?.225:days<=360?.20:days<=720?.175:.15}
+function calculate({capital,cdi,inflation,percentage,business,calendar,costs=0}){
+ const daily=Math.expm1(Math.log1p(cdi/100)/252);
+ const gross=capital*Math.exp(business*Math.log1p(percentage/100*daily));
+ const gain=Math.max(gross-capital,0);
+ const iof=gain*(calendar<30?iofRates[calendar]/100:0);
+ const ir=(gain-iof)*irRate(calendar);
+ const net=gross-iof-ir-costs;
+ const inflationFactor=Math.exp(Math.log1p(inflation/100)*calendar/365);
+ const realFactor=net/capital/inflationFactor;
+ const annual=realFactor>0?Math.expm1(Math.log(realFactor)*365/calendar):NaN;
+ return {gross,gain,iof,ir,net,inflationFactor,real:realFactor-1,annual,nominal:net/capital-1,purchasing:net/inflationFactor};
+}
+function read(id){const el=$(id);if(el.value.trim()===''||!el.validity.valid)throw Error('Confira os campos. Informe números dentro dos limites indicados.');return el.valueAsNumber}
+function rateText(x){return Number.isFinite(x)?percent.format(x):'Indisponível'}
+function card(label,value,primary=false){return '<div class="card '+(primary?'primary':'')+'"><span>'+label+'</span><strong>'+value+'</strong></div>'}
+function update(){
+ let cdi,inflation;
+ try{cdi=read('cdi');inflation=read('inflation');$('tableError').textContent='';}
+ catch(e){$('tableError').textContent=e.message;$('rows').innerHTML='';$('results').innerHTML='';return}
+ $('rows').innerHTML=[100,105,110,115,120].map(p=>'<tr><td>'+p+'% do CDI</td>'+[180,360,720,721].map(d=>{const r=calculate({capital:1,cdi,inflation,percentage:p,business:d*252/365,calendar:d});return '<td class="'+(r.annual<0?'negative':'')+'">'+rateText(r.annual)+'</td>'}).join('')+'</tr>').join('');
+ try{
+ const capital=read('capital'),percentage=read('percentage'),business=read('business'),calendar=read('calendar'),costs=read('costs');
+ if(business>calendar)throw Error('Dias úteis não podem superar os dias corridos.');
+ const r=calculate({capital,cdi,inflation,percentage,business,calendar,costs});
+ if(!Number.isFinite(r.gross))throw Error('A combinação de taxa e prazo excede o limite do cálculo.');
+ $('exactError').textContent='';
+ $('results').innerHTML='<div class="cards">'+card('Valor líquido no resgate',money.format(r.net),true)+card('Ganho líquido em reais',money.format(r.net-capital))+card('Retorno real líquido no período',rateText(r.real))+card('Retorno real líquido anualizado',rateText(r.annual))+card('Valor bruto',money.format(r.gross))+card('IOF · '+percent.format(calendar<30?iofRates[calendar]/100:0),money.format(r.iof))+card('IR · '+percent.format(irRate(calendar)),money.format(r.ir))+card('Inflação acumulada no período',rateText(r.inflationFactor-1))+card('Valor líquido em poder de compra inicial',money.format(r.purchasing))+card('Retorno nominal líquido no período',rateText(r.nominal))+'</div>';
+ }catch(e){$('exactError').textContent=e.message;$('results').innerHTML=''}
+}
+document.querySelectorAll('input').forEach(el=>el.addEventListener('input',update));
+$('reset').addEventListener('click',()=>{for(const [id,value]of Object.entries({cdi:15,inflation:4,capital:10000,percentage:120,business:498,calendar:721,costs:0}))$(id).value=value;update()});
+update();
+</script>
+</html>
