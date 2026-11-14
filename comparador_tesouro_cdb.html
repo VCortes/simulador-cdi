@@ -1,0 +1,112 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comparador · Tesouro e CDB</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f5f3;color:#163d36;font:15px system-ui,sans-serif}main{max-width:1500px;margin:auto;padding:30px 24px}h1{font-size:34px;letter-spacing:-1px;margin:8px 0}h2{font-size:20px;margin:0 0 15px}h3{font-size:16px;margin:0 0 12px}p{line-height:1.6}.note,small{font-size:12px;color:#526c65;line-height:1.6}.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:20px;align-items:start}section,.panel{background:white;border:1px solid #d8e5dd;border-radius:14px;padding:20px;margin-bottom:16px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{font-size:12px;font-weight:600;display:block}input:not([type=checkbox]):not([type=range]),select{display:block;width:100%;padding:9px;border:1px solid #bdcec5;border-radius:7px;background:#fbfdfb;color:inherit;font:inherit;margin:5px 0 0}input:focus,select:focus{outline:2px solid #438e72}details{border-top:1px solid #e0e9e2;padding-top:12px;margin-top:12px}summary{cursor:pointer;font-weight:650;line-height:1.6}details .fields{margin-top:12px}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}.legend label{cursor:pointer;font-size:13px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px}.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button{padding:8px 12px;border:1px solid #b6cec0;border-radius:7px;background:white;color:inherit;cursor:pointer}button:hover{background:#edf4ee}#graph{width:100%;display:block;touch-action:pan-y}#graph text{font-family:system-ui,sans-serif}input[type=range]{width:100%;accent-color:#226249}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap;font-variant-numeric:tabular-nums}td,th{padding:12px 9px;border-bottom:1px solid #e3ebe6;text-align:right;font-size:13px}td:first-child,th:first-child{text-align:left}th{font-size:11px;color:#526c65}#error{color:#a12525;font-weight:650}.badge{background:#e6eee8;padding:5px 9px;border-radius:6px;font-size:12px}a{color:#1a715c}code{font-size:12px;line-height:1.8;white-space:normal}.full{grid-column:1/-1}.negative{color:#af322c}footer{font-size:12px;color:#526c65}@media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:1fr 1fr;gap:16px}.sidebar section{margin:0}.sidebar section:last-child{grid-column:1/-1}}@media(max-width:650px){main{padding:20px 10px}h1{font-size:27px}.sidebar{display:block}.sidebar section{margin-bottom:14px}section,.panel{padding:15px}}
+</style>
+<main><small>LABORATÓRIO DE RENDA FIXA · OFFLINE</small><h1>Seis investimentos. O mesmo poder de compra.</h1><p>Compare o retorno real de Tesouro Selic, Prefixado e IPCA+ e de três modalidades de CDB. Todos sem cupons.</p>
+<div class="layout"><aside class="sidebar">
+<section><h2>Cenário comum</h2><div class="fields">
+<label>Capital por produto (R$)<input id="capital" type="number" min="1" max="1000000000" value="10000" step=".01"></label>
+<label>Inflação (% a.a.)<input id="inflation" type="number" min="-99" max="100" value="4" step=".01"></label>
+<label>CDI (% a.a.)<input id="cdi" type="number" min="0" max="100" value="15" step=".01"></label>
+<label>Selic efetiva (% a.a.)<input id="selic" type="number" min="0" max="100" value="14.9" step=".01"></label>
+<label>Prazo original (dias úteis)<input id="du" type="number" min="1" max="7560" value="756" step="1"></label>
+<label>Prazo original (dias corridos)<input id="dc" type="number" min="1" max="12000" value="1095" step="1"></label>
+<label class="full">Valor exibido no gráfico<select id="metric"><option value="real">Rentabilidade real líquida acumulada (%)</option><option value="realGross">Rentabilidade real bruta acumulada (%)</option><option value="purchasing">Valor líquido em reais da compra (R$)</option><option value="annual">Rentabilidade real líquida anualizada (%)</option></select></label>
+<label class="full">Trajetória das taxas de recompra do Tesouro<select id="path"><option value="linear">Da taxa de compra à taxa de saída, gradualmente</option><option value="constant">Taxa de saída constante desde o início</option></select></label>
+</div><p class="note">Os seis produtos têm o mesmo vencimento. Para os pontos intermediários, DC = DU decorrido × DC original / DU original, arredondado. Informe os dois prazos do seu cenário. Sem calendário de feriados automático.</p></section>
+<section><h2>Produtos e taxas</h2><div id="productForms"></div></section>
+<section><h2>Custos do Tesouro</h2><div class="fields">
+<label>Custódia estimada (% a.a.)<input id="custody" type="number" min="0" max="10" value=".2" step=".01"></label>
+<label>Isenção Selic nesta posição (R$)<input id="exemption" type="number" min="0" max="1000000000" value="10000" step=".01"></label>
+</div><p class="note">Custódia estimada pela área sob o valor bruto de mercado, proporcional aos dias corridos. Cobrança deduzida na saída, sem simular pagamentos intermediários. A isenção de R$ 10 mil do Selic vale por CPF; ajuste o saldo disponível se tiver outras posições. Cada produto também permite custo fixo de saída.</p></section>
+</aside><div>
+<section><div class="tools"><h2 style="margin-right:auto">Evolução do retorno real</h2><span class="badge" id="modeLabel"></span></div><p class="note">Na opção padrão, “Rentabilidade real líquida acumulada (%)”, o gráfico já desconta IR, IOF quando aplicável, custos informados e custódia estimada do Tesouro, e ajusta o resultado pela inflação. Na opção “Rentabilidade real bruta acumulada (%)”, o ajuste é apenas pela inflação, antes dos impostos e custos. Cada ponto representa uma saída hipotética naquela data. No vencimento, as taxas de recompra deixam de afetar o pagamento.</p><div class="legend" id="legend"></div><p id="error" role="alert"></p>
+<svg id="graph" viewBox="0 0 920 450" role="img" aria-label="Comparação das curvas de retorno real"></svg>
+<div class="tools"><button id="zoomIn">Ampliar prazo</button><button id="zoomOut">Reduzir zoom</button><button id="fit">Ver prazo completo</button><button id="csv">Baixar dados CSV</button></div>
+<p id="zoomText" class="note"></p>
+<label>Data de saída analisada · <span id="pointLabel"></span><input id="point" type="range" min="0" max="756" value="378" step="1"></label>
+<p class="note">Mova o controle ou clique no gráfico para analisar um ponto.</p>
+</section>
+<section><h2 id="tableTitle">Detalhamento da saída</h2><div class="scroll"><table><thead><tr><th>Produto</th><th>Bruto</th><th>IOF</th><th>IR</th><th>Custos</th><th>Líquido</th><th>Real líquido<br>no período</th><th>Real líquido<br>anualizado</th></tr></thead><tbody id="resultRows"></tbody></table></div><p id="pointNote" class="note"></p></section>
+<section><h2>Premissas e fórmulas</h2>
+<p class="note">Taxas e inflação constantes são hipóteses de cenário. O VNA de compra cancela na razão entre preços quando se compara o mesmo capital com quantidade fracionária teórica, por isso não é necessário informá-lo. Preços e quantidades oficiais podem ter truncamentos. A atualização do IPCA é aproximada por inflação anual composta em dias corridos; não reproduz referências mensais, projeções e defasagens de uma operação real.</p>
+<details><summary>Como cada curva é calculada</summary><p><code>A = capital; N = DU do prazo original; n = DU decorridos; R = N − n; Fπ = (1 + inflação anual)^(DC/365).<br>Tesouro Selic: bruto = A × (1 + Selic)^(n/252) × (1 + s compra)^(N/252) / (1 + s recompra)^(R/252).<br>Tesouro Prefixado: bruto = A × (1 + i compra)^(N/252) / (1 + i recompra)^(R/252).<br>Tesouro IPCA+: bruto = A × Fπ × (1 + j compra)^(N/252) / (1 + j recompra)^(R/252).<br>CDB prefixado na curva: bruto = A × (1 + i)^(n/252).<br>CDB % CDI: bruto = A × [1 + p × ((1 + CDI)^(1/252) − 1)]^n.<br>CDB IPCA+: bruto = A × Fπ × (1 + j)^(n/252).<br>Para CDB prefixado ou IPCA+ em venda hipotética, usa-se a mesma razão entre fatores de compra e saída do Tesouro correspondente. Para CDB % CDI, aplica-se o deságio informado sobre o saldo na curva antes do vencimento.<br>G = máx(bruto − A, 0); IOF = G × q; IR = (G − IOF) × a; líquido = bruto − IOF − IR − custos.<br>Retorno real líquido = líquido / (A × Fπ) − 1.<br>Retorno real líquido anualizado = [líquido / (A × Fπ)]^(365/DC) − 1.</code></p></details>
+<details><summary>Venda antecipada, impostos e origem dos dados</summary><p class="note">As curvas do Tesouro usam preço de recompra hipotético. Os CDBs permitem saldo contratual ou venda hipotética. Saldo na curva não garante liquidez; a venda depende do produto e da existência de proposta. O deságio percentual do CDB % CDI é um cenário de preço, sem equivaler a uma taxa adicional anual. Para os CDBs, a taxa de saída é constante. No instante zero, o gráfico marca o capital aplicado; uma taxa de recompra diferente pode gerar salto no primeiro ponto seguinte.<br>IR em dias corridos: até 180, 22,5%; de 181 a 360, 20%; de 361 a 720, 17,5%; acima de 720, 15%. IOF regressivo antes de 30 dias. Os primeiros pontos podem coincidir em DC por causa da aproximação de calendário. Sem cupons, novos aportes ou reinvestimento. O cálculo anualizado pode oscilar muito em prazos curtos.<br>Fórmulas adaptadas dos PDFs desta conversa sobre Tesouro Selic, Prefixado, IPCA+ e CDB, LC e RDB.</p><p class="note"><a href="https://www.tesourodireto.com.br/sobre-o-tesouro/regras-e-regulamento">Tesouro Direto — regras e custódia</a> · <a href="https://normas.receita.fazenda.gov.br/sijut2consulta/link.action?idAto=67494">Receita Federal — tributação</a> · <a href="https://www.b3.com.br/data/files/0C/F3/55/66/C3FF69106B8BCB69AC094EA8/CDBs-DIs-DPGE-LAM-LC-LF-LFS-LFSC-LFSN-IECI-RDB.pdf">B3 — fórmulas dos CDBs</a></p></details>
+</section><button id="reset">Restaurar cenário inicial</button>
+</div></div></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const products=[
+{id:'selicT',name:'Tesouro Selic',color:'#15735a',buy:.05,sell:.10,kind:'selic',buyLabel:'s compra (% a.a.)',sellLabel:'s recompra final (% a.a.)'},
+{id:'preT',name:'Tesouro Prefixado',color:'#306bd4',buy:14,sell:12,kind:'pre',buyLabel:'Taxa compra (% a.a.)',sellLabel:'Taxa recompra final (% a.a.)'},
+{id:'ipcaT',name:'Tesouro IPCA+',color:'#b64f29',buy:7,sell:6,kind:'ipca',buyLabel:'Taxa real compra (% a.a.)',sellLabel:'Taxa real recompra final (% a.a.)'},
+{id:'preC',name:'CDB prefixado',color:'#8c4cc4',buy:14,sell:14,kind:'pre',cdb:true,buyLabel:'Taxa contratada (% a.a.)',sellLabel:'Taxa de venda (% a.a.)'},
+{id:'diC',name:'CDB percentual do CDI',color:'#a0770c',buy:110,sell:0,kind:'di',cdb:true,buyLabel:'Percentual do CDI (%)',sellLabel:'Deságio na venda (%)'},
+{id:'ipcaC',name:'CDB IPCA+',color:'#1a849c',buy:7,sell:7,kind:'ipca',cdb:true,buyLabel:'Taxa real contratada (% a.a.)',sellLabel:'Taxa real de venda (% a.a.)'}];
+const money=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const pct=v=>Number.isFinite(v)?(v*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%':'—';
+const iof=[0,96,93,90,86,83,80,76,73,70,66,63,60,56,53,50,46,43,40,36,33,30,26,23,20,16,13,10,6,3];
+const ir=d=>d<=180?.225:d<=360?.20:d<=720?.175:.15;
+const initial={capital:10000,inflation:4,cdi:15,selic:14.9,du:756,dc:1095,custody:.2,exemption:10000,path:'linear',metric:'real'};
+function input(id,label,value,min=-99,max=100){return '<label>'+label+'<input id="'+id+'" type="number" min="'+min+'" max="'+max+'" step=".01" value="'+value+'"></label>'}
+$('productForms').innerHTML=products.map(p=>'<details '+(p.id==='selicT'?'open':'')+'><summary><span class="dot" style="background:'+p.color+'"></span>'+p.name+'</summary><div class="fields">'+input(p.id+'buy',p.buyLabel,p.buy,p.kind==='di'?0:-99,p.kind==='di'?1000:100)+input(p.id+'sell',p.sellLabel,p.sell,p.kind==='di'?0:-99,p.kind==='di'?99:100)+input(p.id+'cost','Custo fixo de saída (R$)',0,0,1000000)+(p.cdb?'<label class="full">Avaliação antes do vencimento<select id="'+p.id+'mode"><option value="curve">Saldo contratual na curva</option><option value="sale">Venda antecipada hipotética</option></select></label>':'')+'</div>'+(p.kind==='selic'?'<p class="note">s positivo = deságio, s negativo = ágio. A taxa não é a Selic. Use a taxa de recompra efetiva para incorporar o spread de saída.</p>':'')+'</details>').join('');
+$('legend').innerHTML=products.map(p=>'<label><input type="checkbox" id="'+p.id+'visible" checked><span class="dot" style="background:'+p.color+'"></span>'+p.name+'</label>').join('');
+let state,series=[],lo=0,hi=756;
+function read(id){const e=$(id);if(e.value===''||!e.validity.valid)throw Error('Confira os campos numéricos e os limites indicados.');return e.valueAsNumber}
+function scenario(){const s={};for(const id of ['capital','inflation','cdi','selic','du','dc','custody','exemption'])s[id]=read(id);if(s.du>s.dc)throw Error('O prazo em dias úteis deve ser menor ou igual ao prazo em dias corridos.');s.path=$('path').value;s.metric=$('metric').value;s.products=products.map(p=>({...p,buy:read(p.id+'buy')/100,sell:read(p.id+'sell')/100,cost:read(p.id+'cost'),mode:p.cdb?$(p.id+'mode').value:'sale'}));return s}
+function grossAt(s,p,n){
+ if(n===0)return s.capital;
+ const r=s.du-n,t=n/s.du,dc=Math.round(n*s.dc/s.du),F=(1+s.inflation/100)**(dc/365);
+ const rate=p.cdb||s.path==='constant'?p.sell:p.buy+(p.sell-p.buy)*t;
+ if(p.cdb&&p.mode==='curve'){
+ if(p.kind==='di')return s.capital*(1+p.buy*((1+s.cdi/100)**(1/252)-1))**n;
+ return s.capital*(p.kind==='ipca'?F:1)*(1+p.buy)**(n/252);
+ }
+ if(p.kind==='di')return s.capital*(1+p.buy*((1+s.cdi/100)**(1/252)-1))**n*(n<s.du?1-p.sell:1);
+ return s.capital*(p.kind==='ipca'?F:p.kind==='selic'?(1+s.selic/100)**(n/252):1)*(1+p.buy)**(s.du/252)/(1+rate)**(r/252);
+}
+function buildSeries(s,p){
+ const out=[];let custody=0,prev=s.capital;
+ for(let n=0;n<=s.du;n++){
+ const dc=Math.round(n*s.dc/s.du),prevDC=Math.round((n-1)*s.dc/s.du),F=(1+s.inflation/100)**(dc/365),gross=grossAt(s,p,n);
+ if(!Number.isFinite(gross))throw Error('Taxa ou prazo excede o limite numérico.');
+ if(n&&!p.cdb){const base=v=>Math.max(v-(p.kind==='selic'?s.exemption:0),0);custody+=(base(prev)+base(gross))/2*(s.custody/100)*(dc-prevDC)/365}
+ const gain=Math.max(gross-s.capital,0),iofTax=n&&dc<30?gain*iof[dc]/100:0,irTax=n?(gain-iofTax)*ir(dc):0,cost=n?p.cost+custody:0,net=gross-iofTax-irTax-cost,realFactor=net/(s.capital*F);
+ out.push({n,dc,gross,net,iof:iofTax,ir:irTax,cost,real:realFactor-1,realGross:gross/(s.capital*F)-1,purchasing:net/F,annual:dc>0&&realFactor>0?Math.expm1(Math.log(realFactor)*365/dc):NaN});prev=gross;
+ }return {product:p,points:out};
+}
+function refresh(){
+ try{const old=state;state=scenario();series=state.products.map(p=>buildSeries(state,p));$('error').textContent='';if(!old||old.du!==state.du){lo=0;hi=state.du}$('point').max=state.du;$('point').value=Math.min(+$('point').value,state.du);draw();details()}
+ catch(e){$('error').textContent=e.message;$('graph').innerHTML='';$('resultRows').innerHTML='';series=[]}
+}
+function visible(){return series.filter(x=>$(x.product.id+'visible').checked)}
+function value(q){return q[state.metric]}
+function draw(){
+ const active=visible(),W=920,H=450,L=83,R=20,T=24,B=56,w=W-L-R,h=H-T-B;
+ let values=active.flatMap(s=>s.points.slice(lo,hi+1).map(value)).filter(Number.isFinite);if(state.metric==='annual'&&lo===0)values=active.flatMap(s=>s.points.slice(1,hi+1).map(value)).filter(Number.isFinite);
+ if(!values.length)values=[0,1];
+ let min=Math.min(0,...values),max=Math.max(state.metric==='purchasing'?state.capital:0,...values);if(max-min<1e-9)max=min+1;const pad=(max-min)*.08;min-=pad;max+=pad;
+ const X=n=>L+(n-lo)/(hi-lo)*w,Y=v=>T+(max-v)/(max-min)*h;
+ let svg='<rect width="920" height="450" fill="white"/>';
+ for(let k=0;k<=5;k++){const v=min+(max-min)*k/5,y=Y(v);svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="#e3eae5"/><text x="'+(L-10)+'" y="'+(y+4)+'" text-anchor="end" fill="#51665e" font-size="12">'+(state.metric==='purchasing'?Math.round(v).toLocaleString('pt-BR'):(v*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%')+'</text>'}
+ for(let k=0;k<=5;k++){const n=Math.round(lo+(hi-lo)*k/5);svg+='<text x="'+X(n)+'" y="'+(H-30)+'" text-anchor="middle" fill="#51665e" font-size="12">'+n+'</text>'}
+ svg+='<text x="'+(L+w/2)+'" y="441" text-anchor="middle" fill="#51665e" font-size="12">Dias úteis desde a liquidação da compra</text>';
+ for(const s of active){let path='',open=false;for(let n=lo;n<=hi;n++){const v=value(s.points[n]);if(!Number.isFinite(v)){open=false;continue}path+=(open?'L':'M')+X(n).toFixed(2)+','+Y(v).toFixed(2);open=true}svg+='<path d="'+path+'" fill="none" stroke="'+s.product.color+'" stroke-width="2.5"/>'}
+ const selected=+$('point').value;if(selected>=lo&&selected<=hi){svg+='<line x1="'+X(selected)+'" x2="'+X(selected)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="#76978b" stroke-dasharray="5 5"/>';for(const s of active){let v=value(s.points[selected]);if(Number.isFinite(v))svg+='<circle cx="'+X(selected)+'" cy="'+Y(v)+'" r="4" fill="'+s.product.color+'" stroke="white"/>'}}
+ $('graph').innerHTML=svg;$('zoomText').textContent='Janela do gráfico · '+lo+' a '+hi+' dias úteis. Zoom centrado na saída selecionada.';$('modeLabel').textContent=state.metric==='annual'?'Taxa equivalente ao ano':'Acumulado desde a compra';
+}
+function details(){
+ const n=+$('point').value,dc=Math.round(n*state.dc/state.du);$('pointLabel').textContent=n+' DU · '+dc+' dias corridos · '+(n===state.du?'vencimento':n===0?'compra':'saída antecipada');
+ $('resultRows').innerHTML=visible().map(s=>{const q=s.points[n];return '<tr><td><span class="dot" style="background:'+s.product.color+'"></span>'+s.product.name+'</td>'+['gross','iof','ir','cost','net'].map(k=>'<td>'+money.format(q[k])+'</td>').join('')+'<td class="'+(q.real<0?'negative':'')+'">'+pct(q.real)+'</td><td>'+pct(q.annual)+'</td></tr>'}).join('');
+ $('pointNote').textContent=n?'IR sobre ganho após IOF · '+pct(ir(dc))+' · Inflação acumulada · '+pct((1+state.inflation/100)**(dc/365)-1)+'. Custos incluem a estimativa de custódia do Tesouro e os custos fixos informados.':'Ponto inicial mostra o capital aplicado, sem custos e impostos. A taxa anualizada ainda não se aplica.';
+}
+document.querySelectorAll('input:not([type=range]),select').forEach(e=>e.addEventListener('input',refresh));
+$('point').addEventListener('input',()=>{if(series.length){draw();details()}});
+$('graph').addEventListener('click',e=>{if(!series.length)return;const r=$('graph').getBoundingClientRect(),x=(e.clientX-r.left)/r.width*920;const n=Math.round(lo+Math.max(0,Math.min(1,(x-83)/817))*(hi-lo));$('point').value=n;draw();details()});
+function zoom(f){if(!series.length)return;const span=Math.max(10,Math.min(state.du,Math.round((hi-lo)*f))),center=+$('point').value;lo=Math.max(0,Math.min(state.du-span,Math.round(center-span/2)));hi=lo+span;if(hi>state.du){hi=state.du;lo=0}draw()}
+$('zoomIn').onclick=()=>zoom(.5);$('zoomOut').onclick=()=>zoom(2);$('fit').onclick=()=>{if(state){lo=0;hi=state.du;draw()}};
+$('reset').onclick=()=>{for(const [id,v]of Object.entries(initial))$(id).value=v;for(const p of products){$(p.id+'buy').value=p.buy;$(p.id+'sell').value=p.sell;$(p.id+'cost').value=0;$(p.id+'visible').checked=true;if(p.cdb)$(p.id+'mode').value='curve'}lo=0;hi=756;$('point').value=378;refresh()};
+$('csv').onclick=()=>{if(!series.length)return;const rows=[['Produto','DU','DC','Bruto','IOF','IR','Custos','Liquido','Retorno real liquido fracao','Retorno real anualizado fracao']];for(const s of visible())for(const q of s.points)rows.push([s.product.name,q.n,q.dc,q.gross,q.iof,q.ir,q.cost,q.net,q.real,Number.isFinite(q.annual)?q.annual:'']);const data=rows.map(r=>r.map(v=>typeof v==='number'?String(v).replace('.',','):v).join(';')).join('\r\n');const url=URL.createObjectURL(new Blob(['\ufeff'+data],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='comparador_tesouro_cdb.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+refresh();
+</script></html>
